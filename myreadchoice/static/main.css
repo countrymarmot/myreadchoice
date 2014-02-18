@@ -1,0 +1,9 @@
+#editor {
+    position: relative;
+    width: 100%;
+    font-family: "Ubuntu Mono", "Microsoft Yahei","微软雅黑", STXihei, "华文细黑", sans-serif;
+    font-size: 14px;
+}
+.ace_scrollbar {
+    display: none !important;
+}

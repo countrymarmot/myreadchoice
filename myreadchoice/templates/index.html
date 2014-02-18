@@ -1,0 +1,130 @@
+{% extends "layout.html" %}
+{% block body %}
+<div class="container">
+    <div class="input-group">
+        <input id="url" type="text" class="form-control">
+        <span class="input-group-btn">
+            <button id="start" class="btn btn-default" type="button">Start!</button>
+        </span>
+    </div>
+</div>
+<div id="main" class="container">
+    <div class="btn-group">
+        <button id="toggle" type="button" class="btn btn-default btn-sm">
+            <span class="glyphicon glyphicon-picture"></span> Preview
+        </button>
+        <button id="save" type="button" class="btn btn-default btn-sm">
+            <span class="glyphicon glyphicon-save"></span> Save Changes
+        </button>
+        <button id="download" type="button" class="btn btn-default btn-sm">
+            <span class="glyphicon glyphicon-download"></span> Download
+        </button>
+        <button id="close" type="button" class="btn btn-default btn-sm">
+            <span class="glyphicon glyphicon-remove"></span> Close
+        </button>
+    </div>
+    <div id="editor" class="container"></div>
+    <div id="preview" class="container"></div>
+</div>
+<script>
+var aceEditor = ace.edit("editor");
+aceEditor.setTheme("ace/theme/dawn");
+aceEditor.session.setMode("ace/mode/markdown");
+aceEditor.setShowPrintMargin(false);
+aceEditor.setBehavioursEnabled(false);
+//aceEditor.renderer.setShowGutter(false);
+aceEditor.setOption("minLines", 4);
+aceEditor.session.setUseWrapMode(true);
+
+var MODE = {
+    VIEW : 1,
+    EIDT : 2, 
+    HIDE : 3
+}
+var mode = MODE.HIDE
+var setmode = function(m) {
+    if(m == MODE.HIDE) {
+        $("#main").hide();
+        mode = MODE.HIDE;
+    }
+    if(m == MODE.VIEW) {
+        $("#main").show();
+        $("#editor").hide();
+        $("#preview").show();
+        mode = MODE.VIEW;
+        $("#toggle").html("<span class='glyphicon glyphicon-edit'></span> Edit");
+    }
+    if(m == MODE.EDIT) {
+        $("#main").show();
+        $("#editor").show();
+        $("#preview").hide();
+        mode = MODE.EDIT;
+        $("#toggle").html("<span class='glyphicon glyphicon-picture'></span> Preview");
+    }
+};
+
+var heightUpdateFunction = function() {
+    // http://stackoverflow.com/questions/11584061/
+    var newHeight =
+            aceEditor.getSession().getScreenLength()
+            * aceEditor.renderer.lineHeight
+            + aceEditor.renderer.scrollBar.getWidth();
+
+    $('#editor').height(newHeight.toString() + "px");
+    $('#editor-section').height(newHeight.toString() + "px");
+
+    // This call is required for the editor to fix all of
+    // its inner structure for adapting to a change in size
+    aceEditor.resize();
+};
+
+$(document).ready(function(){
+    setmode(MODE.HIDE);
+    //aceEditor.session.setUseWrapMode(true);
+
+    // Set initial size to match initial content
+    heightUpdateFunction();
+
+    //aceEditor.getSession().setTabSize(4);
+    //aceEditor.getSession().setUseSoftTabs(true);
+    aceEditor.resize();
+
+    // Whenever a change happens inside the ACE editor, update
+    // the size again
+    aceEditor.getSession().on('change', heightUpdateFunction);
+
+    $("#start").click(function() {
+        setmode(MODE.EDIT);
+        $.ajax({
+            url: "/mdcontent",
+            data: {url: $("#url").val()},
+            dataType: "json",
+            success: function(response){
+                aceEditor.session.setValue(response.text, -1)
+                //console.log(response.score)
+                aceEditor.resize()
+                aceEditor.focus()
+                //console.log(aceEditor.session.getValue())
+            },
+            error: function(jqXHR,textStatus,errorThrown){
+                console.log(textStatus)  
+            }
+        });
+    });
+    $("#toggle").click(function() {
+        if(mode==MODE.EDIT) {
+            var converter = Markdown.getSanitizingConverter();
+            text = converter.makeHtml(aceEditor.session.getValue());
+            $("#preview").html(text)
+            setmode(MODE.VIEW);
+        }
+        else {
+            setmode(MODE.EDIT);
+        }
+    });
+    $("#close").click(function() {
+        setmode(MODE.HIDE);
+    });
+});// end of document ready
+</script>
+{% endblock %}
